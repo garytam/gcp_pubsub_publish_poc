@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -25,10 +26,17 @@ public class PublishMessageHelper {
     @Value("${topicId}")
     private String topicId;
 
-    public void publishMovieMessage(Movie movie) {
+    public void publishMovieMessage(Movie movie, Map<String, String> header) {
         TopicName topicName = TopicName.of(projectId, topicId);
         Publisher publisher = null;
 
+        Map<String, String> attributeMap = new HashMap<>();
+        List<String> list = Arrays.asList("transactionId", "author", "year");
+        list.forEach( item -> {
+            attributeMap.put(item, header.get(item.toLowerCase(Locale.ROOT)));
+        });
+
+        ImmutableMap<String, String> immutableMap = ImmutableMap.copyOf(attributeMap);
         try {
             // Create a publisher instance with default settings bound to the topic
             publisher = Publisher.newBuilder(topicName).build();
@@ -40,7 +48,7 @@ public class PublishMessageHelper {
             PubsubMessage pubsubMessage =
                     PubsubMessage.newBuilder()
                             .setData(data)
-                            .putAllAttributes(ImmutableMap.of("year", "2020", "author", "Gordo", "parm", "wireless"))
+                            .putAllAttributes(immutableMap) //ImmutableMap.of("year", "2020", "author", "Gordo", "parm", "wireless"))
                             .build();
 
             // Once published, returns a server-assigned message id (unique within the topic)
